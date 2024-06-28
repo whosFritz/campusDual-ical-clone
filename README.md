@@ -1,17 +1,21 @@
 # BA-Leipzig-Schedule-Clone
 
-This project is a Node.js server that fetches data from the BA-Leipzig self-service platform and provides it in an iCalendar format (ICS). The server uses MongoDB to store event data.
+This project is a Node.js server that fetches data from the BA-Leipzig self-service platform and provides it in an iCalendar format (ICS). The server uses MongoDB to store event data. The user subscribes to the calendar by adding the server URL to their calendar application and entering their user ID and hash.
+
+The Hash can be found by following the guide in this readme:
+
+https://github.com/MaRcR11/ba-schedule/blob/main/README.md
 
 ## Why This Project?
 
 The Campus Dual self-service platform is not user-friendly, so I programmed my own internet calendar (webcal) to provide a better experience.
 
-## Prerequisites
+## Prerequisites for self hosting and development
 
 - Docker
 - Docker Compose
-- Node.js
-- npm
+- Node.js (optional)
+- npm (optional)
 
 ## Installation
 
