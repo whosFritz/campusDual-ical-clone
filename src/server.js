@@ -19,9 +19,10 @@ const userHash = process.env.USER_HASH;
 const dbUri = process.env.DB_URI;
 
 // Create logs directory if it doesn't exist
-const logDirectory = path.join(__dirname, 'logs');
+const logDirectory = path.join(__dirname, '../logs');
 if (!fs.existsSync(logDirectory)) {
-  fs.mkdirSync(logDirectory);
+  fs.mkdirSync(logDirectory, { recursive: true });
+  fs.chmodSync(logDirectory, 0o775); // Set appropriate permissions
 }
 
 // Reminder
@@ -40,9 +41,10 @@ const logger = winston.createLogger({
     winston.format.printf(({ timestamp, level, message }) => `${timestamp} ${level}: ${message}`)
   ),
   transports: [
-    new winston.transports.File({ filename: path.join(logDirectory, 'app.log') }),
-    new winston.transports.Console()
-  ]
+    new winston.transports.File({ filename: path.join(logDirectory, 'app.log'), handleExceptions: true }),
+    new winston.transports.Console({ handleExceptions: true })
+  ],
+  exitOnError: false
 });
 
 let db;
