@@ -19,7 +19,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - ./logs:/app/logs # Mount logs directory from host to container
+      - ./logs:/app/logs
 
 volumes:
   mongo_data:
