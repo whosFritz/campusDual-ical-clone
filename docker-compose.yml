@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-feed
+    ports:
+      - "${MONGODB_PORT}:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  node:
+    build: .
+    container_name: ical-feed-node
+    ports:
+      - "${NODE_PORT_EXTERN}:${NODE_PORT_INTERN}"
+    env_file:
+      - .env
+    depends_on:
+      - mongodb
+    volumes:
+      - ./logs:/app/logs # Mount logs directory from host to container
+
+volumes:
+  mongo_data:
