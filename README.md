@@ -10,6 +10,12 @@ https://github.com/MaRcR11/ba-schedule/blob/main/README.md
 
 The Campus Dual self-service platform is not user-friendly, so I programmed my own internet calendar (webcal) to provide a better experience.
 
+## Supported Platforms
+
+- Calendar MacOS and iOS
+- Google Calendar (partially)
+
+
 ## Prerequisites for self hosting and development
 
 - Docker
