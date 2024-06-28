@@ -53,7 +53,6 @@ const connectToMongoDB = async () => {
     const client = await MongoClient.connect(dbUri, { useNewUrlParser: true, useUnifiedTopology: true });
     db = client.db();
     logger.info('Connected to MongoDB');
-    fetchAndSaveEvents(); // Call this after the DB connection is established
   } catch (err) {
     logger.error('Failed to connect to MongoDB', err);
   }
@@ -97,31 +96,6 @@ const campusDualFetcher = async (userID, userHash) => {
   }
 };
 
-const fetchAndSaveEvents = async () => {
-  console.time('fetchAndSaveEvents');
-  try {
-    const data = await campusDualFetcher(process.env.USER_ID, process.env.USER_HASH);
-    const events = JSON.parse(data);
-
-    const collection = db.collection('events');
-    for (const event of events) {
-      const existingEvent = await collection.findOne({ title: event.title, start: event.start, end: event.end });
-      if (!existingEvent) {
-        await collection.insertOne(event);
-      }
-    }
-    logger.info('Events fetched and saved to MongoDB');
-  } catch (error) {
-    logger.error('Error fetching or saving events:', error);
-  }
-  console.timeEnd('fetchAndSaveEvents');
-};
-
-// Schedule tasks to be run on the server every 10 minutes
-cron.schedule('*/10 * * * *', () => {
-  logger.info('Running a job every 10 minutes');
-  fetchAndSaveEvents();
-});
 
 const convertTimestampToICalDate = (timestamp) => {
   const date = new Date(timestamp * 1000);
@@ -170,7 +144,7 @@ const customAuth = async (req, res, next) => {
   const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
   const [userid, userhash] = credentials.split(':');
 
-  logger.info(`Received credentials: userID=${userid}, userHash=${userhash}`);
+  logger.info(`Received credentials: userID=${userid}}`);
 
   try {
     const usersCollection = db.collection('users');
