@@ -4,7 +4,7 @@ This project is a Node.js server that fetches data from the BA-Leipzig self-serv
 
 ## Why This Project?
 
-The Campus Dual self-service platform is not user-friendly, so I programmed my own internet calendar (webcam) to provide a better experience.
+The Campus Dual self-service platform is not user-friendly, so I programmed my own internet calendar (webcal) to provide a better experience.
 
 ## Prerequisites
 
