@@ -8,14 +8,12 @@ const aboutRoute = require('ics-service/about');
 const feedRoute = require('ics-service/feed');
 const path = require('path');
 const cron = require('node-cron');
-const morgan = require('morgan');  // For logging HTTP requests
-const winston = require('winston');  // For general logging
+const morgan = require('morgan'); // For logging HTTP requests
+const winston = require('winston'); // For general logging
 
 const TITLE = 'BA-Leipzig-Stundenplan';
 const GENERATOR = 'BA-Leipzig-Stundenplan-Clone';
 
-const userID = process.env.USER_ID;
-const userHash = process.env.USER_HASH;
 const dbUri = process.env.DB_URI;
 
 // Create logs directory if it doesn't exist
@@ -37,7 +35,9 @@ alarms.push({
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
-    winston.format.timestamp(),
+    winston.format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss' // Use local system time
+    }),
     winston.format.printf(({ timestamp, level, message }) => `${timestamp} ${level}: ${message}`)
   ),
   transports: [
@@ -93,14 +93,14 @@ const campusDualFetcher = async (userID, userHash) => {
       });
     });
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error in campusDualFetcher for user ${userID}: ${err}`);
   }
 };
 
 const fetchAndSaveEvents = async () => {
   console.time('fetchAndSaveEvents');
   try {
-    const data = await campusDualFetcher(userID, userHash);
+    const data = await campusDualFetcher(process.env.USER_ID, process.env.USER_HASH);
     const events = JSON.parse(data);
 
     const collection = db.collection('events');
@@ -148,9 +148,8 @@ const convertToICalEvents = (jsonEvents) => {
   }));
 };
 
-const getIcs = async (feedUrl) => {
+const getIcs = async (events, feedUrl) => {
   try {
-    const events = await db.collection('events').find().toArray();
     const iCalEvents = convertToICalEvents(events);
     return generateIcs(TITLE, iCalEvents, feedUrl);
   } catch (error) {
@@ -159,8 +158,86 @@ const getIcs = async (feedUrl) => {
   }
 };
 
-app.use('/feed', feedRoute(getIcs));
-app.use('/', aboutRoute(TITLE));
+// Custom basic authentication middleware
+const customAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+    return res.sendStatus(401);
+  }
+
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [userid, userhash] = credentials.split(':');
+
+  logger.info(`Received credentials: userID=${userid}, userHash=${userhash}`);
+
+  try {
+    const usersCollection = db.collection('users');
+    const existingUser = await usersCollection.findOne({ userid });
+
+    if (existingUser) {
+      logger.info(`User ${userid} found in database, using stored credentials`);
+      // User found in the database, use stored userhash
+      const data = await campusDualFetcher(existingUser.userid, existingUser.userhash);
+      const events = JSON.parse(data);
+      if (events && events.length > 0) {
+        req.events = events;
+        return next();
+      } else {
+        logger.warn(`Invalid credentials for user ${userid}`);
+        res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+        return res.sendStatus(401);
+      }
+    } else {
+      logger.info(`User ${userid} not found in database, testing provided credentials`);
+      // User not found in the database, test fetch with provided credentials
+      const data = await campusDualFetcher(userid, userhash);
+      const events = JSON.parse(data);
+      if (events && events.length > 0) {
+        logger.info(`Credentials for user ${userid} are valid, storing in database`);
+        await usersCollection.insertOne({ userid, userhash });
+        req.events = events;
+        return next();
+      } else {
+        logger.warn(`Invalid credentials for user ${userid}`);
+        res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+        return res.sendStatus(401);
+      }
+    }
+  } catch (error) {
+    logger.error(`Error during authentication for user ${userid}: ${error}`);
+    res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+    res.sendStatus(401);
+  }
+};
+
+app.get('/feed', customAuth, async (req, res) => {
+  try {
+    const icsContent = await getIcs(req.events, req.url);
+    res.setHeader('Content-Disposition', 'attachment; filename=calendar.ics');
+    res.setHeader('Content-Type', 'text/calendar');
+    res.send(icsContent);
+  } catch (error) {
+    logger.error('Error sending iCal content:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+app.use('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>BA-Leipzig-Stundenplan</title>
+      </head>
+      <body>
+        <h1>BA-Leipzig-Stundenplan</h1>
+        <p>Click the link below to add the calendar feed to your calendar application:</p>
+        <a href="/feed">Add to Calendar</a>
+      </body>
+    </html>
+  `);
+});
 
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
