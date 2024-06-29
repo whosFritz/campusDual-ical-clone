@@ -1,19 +1,19 @@
 # BA-Leipzig-Schedule-Clone
 
-This project is a Node.js server that fetches data from the BA-Leipzig self-service platform and provides it in an iCalendar format (ICS). The server uses MongoDB to store event data. The user subscribes to the calendar by adding the server URL to their calendar application and entering their user ID and hash.
+This project is a Node.js server that fetches the users data from the BA-Leipzig self-service platform and provides it in an iCalendar format (ICS). The server uses MongoDB to store event data. The user subscribes to the calendar by adding the server URL to their calendar application and entering their user ID and hash. (Matrikelnummer and Hash)
 
-The Hash can be found by following the guide in this readme:
+You can get your hash by following the guide in this readme:
 
 https://github.com/MaRcR11/ba-schedule/blob/main/README.md
 
 ## Why This Project?
 
-The Campus Dual self-service platform is not user-friendly, so I programmed my own internet calendar (webcal) to provide a better experience.
+For the last fkn 6 years the Campus Dual self-service platform has not been reworked. The platform is not user-friendly and has a lot of bugs. For the last year, the calendar subscription feature has been broken. The platform does not provide an iCalendar link, and the calendar subscription feature is not working. So I decided to create a clone of the BA-Leipzig schedule platform with a working calendar subscription feature.
 
 ## Supported Platforms
 
 - Calendar MacOS and iOS:
-  - if u add the calendar to iCloud, it will be synced, but u will be prompted to enter userid and hash on every new device which is connected to your iCloud account when openeing the calendar app
+  - if u add the calendar to iCloud, it will be synced, but u will be prompted to enter userid and hash on every new device which is connected to your iCloud account when openeing the calendar app 
 
 
 ## Prerequisites for self hosting and development
