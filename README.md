@@ -12,8 +12,8 @@ The Campus Dual self-service platform is not user-friendly, so I programmed my o
 
 ## Supported Platforms
 
-- Calendar MacOS and iOS
-- Google Calendar (partially)
+- Calendar MacOS and iOS:
+  - if u add the calendar to iCloud, it will be synced, but u will be prompted to enter userid and hash on every new device which is connected to your iCloud account when openeing the calendar app
 
 
 ## Prerequisites for self hosting and development
