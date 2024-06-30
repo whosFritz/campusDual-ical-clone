@@ -100,18 +100,18 @@ const campusDualFetcher = async (userID, userHash) => {
 const convertTimestampToICalDate = (timestamp) => {
   const date = new Date(timestamp * 1000);
   return [
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1, // Months are zero indexed in JS
-    date.getUTCDate(),
-    date.getUTCHours(),
-    date.getUTCMinutes(),
-    date.getUTCSeconds()
+    date.getFullYear(),
+    date.getMonth() + 1, // Months are zero indexed in JS
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds()
   ];
 };
 
 const convertToICalEvents = (jsonEvents) => {
   return jsonEvents.map(event => ({
-    title: event.title,
+    title: event.title + ' - ' + event.instructor,
     description: event.description,
     location: event.room,
     start: convertTimestampToICalDate(event.start),
