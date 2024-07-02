@@ -2,19 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const https = require('https');
 const fs = require('fs');
-const { MongoClient } = require('mongodb');
 const generateIcs = require('ics-service/generate-ics');
-const aboutRoute = require('ics-service/about');
-const feedRoute = require('ics-service/feed');
 const path = require('path');
-const cron = require('node-cron');
 const morgan = require('morgan'); // For logging HTTP requests
 const winston = require('winston'); // For general logging
 
 const TITLE = 'BA-Leipzig-Stundenplan';
 const GENERATOR = 'BA-Leipzig-Stundenplan-Clone';
-
-const dbUri = process.env.DB_URI;
 
 // Create logs directory if it doesn't exist
 const logDirectory = path.join(__dirname, '../logs');
@@ -47,17 +41,6 @@ const logger = winston.createLogger({
   exitOnError: false
 });
 
-let db;
-const connectToMongoDB = async () => {
-  try {
-    const client = await MongoClient.connect(dbUri, { useNewUrlParser: true, useUnifiedTopology: true });
-    db = client.db();
-    logger.info('Connected to MongoDB');
-  } catch (err) {
-    logger.error('Failed to connect to MongoDB', err);
-  }
-};
-
 const app = express();
 const PORT = process.env.NODE_PORT_INTERN || 3003;
 
@@ -84,7 +67,11 @@ const campusDualFetcher = async (userID, userHash) => {
             res_str += chunk;
           })
           .on('end', () => {
-            resolve(res_str);
+            if (res.statusCode === 200) {
+              resolve(res_str);
+            } else {
+              reject(new Error(`Status code: ${res.statusCode}`));
+            }
           })
           .on('error', (err) => {
             reject(err);
@@ -93,9 +80,9 @@ const campusDualFetcher = async (userID, userHash) => {
     });
   } catch (err) {
     logger.error(`Error in campusDualFetcher for user ${userID}: ${err}`);
+    throw err;
   }
 };
-
 
 const convertTimestampToICalDate = (timestamp) => {
   const date = new Date(timestamp * 1000);
@@ -144,40 +131,19 @@ const customAuth = async (req, res, next) => {
   const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
   const [userid, userhash] = credentials.split(':');
 
-  logger.info(`Received credentials: userID=${userid}}`);
+  logger.info(`Received credentials: userID=${userid}`);
 
   try {
-    const usersCollection = db.collection('users');
-    const existingUser = await usersCollection.findOne({ userid });
-
-    if (existingUser) {
-      logger.info(`User ${userid} found in database, using stored credentials`);
-      // User found in the database, use stored userhash
-      const data = await campusDualFetcher(existingUser.userid, existingUser.userhash);
-      const events = JSON.parse(data);
-      if (events && events.length > 0) {
-        req.events = events;
-        return next();
-      } else {
-        logger.warn(`Invalid credentials for user ${userid}`);
-        res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
-        return res.sendStatus(401);
-      }
+    const data = await campusDualFetcher(userid, userhash);
+    const events = JSON.parse(data);
+    if (events && events.length > 0) {
+      req.events = events;
+      logger.info(`Authentication complete. Giving data from campus dual to user`);
+      return next();
     } else {
-      logger.info(`User ${userid} not found in database, testing provided credentials`);
-      // User not found in the database, test fetch with provided credentials
-      const data = await campusDualFetcher(userid, userhash);
-      const events = JSON.parse(data);
-      if (events && events.length > 0) {
-        logger.info(`Credentials for user ${userid} are valid, storing in database`);
-        await usersCollection.insertOne({ userid, userhash });
-        req.events = events;
-        return next();
-      } else {
-        logger.warn(`Invalid credentials for user ${userid}`);
-        res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
-        return res.sendStatus(401);
-      }
+      logger.warn(`Invalid credentials for user ${userid}`);
+      res.setHeader('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+      return res.sendStatus(401);
     }
   } catch (error) {
     logger.error(`Error during authentication for user ${userid}: ${error}`);
@@ -199,17 +165,32 @@ app.get('/feed', customAuth, async (req, res) => {
 });
 
 app.use('/', (req, res) => {
+  const calendarUrl = `webcal://${req.headers.host}/feed`;
   res.send(`
-    <html>
-      <head>
-        <title>BA-Leipzig-Stundenplan</title>
-      </head>
-      <body>
-        <h1>BA-Leipzig-Stundenplan</h1>
-        <p>Click the link below to add the calendar feed to your calendar application:</p>
-        <a href="/feed">Add to Calendar</a>
-      </body>
-    </html>
+  <html>
+    <head>
+    <title>BA-Leipzig-Stundenplan</title>
+    </head>
+    <body>
+      <h1>BA-Leipzig-Stundenplan</h1>
+      <p>Click the link below to add the calendar feed to your calendar application:</p>
+      <a href="${calendarUrl}">Add to Calendar</a>
+      <p>This calendar feed is supported on macOS, iOS, and iPadOS. If the calendar app does not open automatically, you can add the calendar manually by following these steps:</p>
+      <ul>
+        <li>Open the Calendar app.</li>
+        <li>Go to "File" > "New Calendar Subscription".</li>
+        <li>Enter the following URL: <code>${calendarUrl}</code></li>
+      </ul>
+      <p>For more details, visit the <a href="https://github.com/whosFritz/campusDual-ical-clone/">GitHub page</a>.</p>
+      <p>Your traffic is encrypted, and the application does not save your data, only transfers it.</p>
+      <p>To use this service, you need your User ID and Hash:</p>
+      <ul>
+        <li>Your User ID resembles the numbers in your student ID.</li>
+        <li>You can find your Hash by following the guide in this <a href="https://github.com/MaRcR11/ba-schedule/blob/main/README.md">README</a>.</li>
+      </ul>
+      <p>Author: whosFritz</p>
+    </body>
+  </html>
   `);
 });
 
@@ -217,5 +198,3 @@ app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`API available at: http://localhost:${PORT}/feed`);
 });
-
-connectToMongoDB(); // Initiate MongoDB connection
