@@ -4,7 +4,6 @@ const https = require('https');
 const fs = require('fs');
 const generateIcs = require('ics-service/generate-ics');
 const path = require('path');
-const morgan = require('morgan'); // For logging HTTP requests
 const winston = require('winston'); // For general logging
 
 const TITLE = 'BA-Leipzig-Stundenplan';
@@ -44,8 +43,6 @@ const logger = winston.createLogger({
 const app = express();
 const PORT = process.env.NODE_PORT_INTERN || 3003;
 
-// Set up morgan to use winston for HTTP request logging
-app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
 
 const campusDualFetcher = async (userID, userHash) => {
   const OPTIONS = {
