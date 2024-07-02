@@ -188,6 +188,8 @@ app.use('/', (req, res) => {
         <li>Your User ID resembles the numbers in your student ID.</li>
         <li>You can find your Hash by following the guide in this <a href="https://github.com/MaRcR11/ba-schedule/blob/main/README.md">README</a>.</li>
       </ul>
+      <p>For questions or feedback, please open an issue on the <a href="https://github.com/whosFritz/campusDual-ical-clone/issues">GitHub repository</a>.</p>
+      <p>Note: If you want to sync the calendar through the iCloud account, you will be prompted by your other devices to log in with your student credentials when entering the corresponding app.</p>
       <p>Author: whosFritz</p>
     </body>
   </html>
