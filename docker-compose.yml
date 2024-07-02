@@ -8,6 +8,7 @@ services:
       - "${NODE_PORT_EXTERN}:${NODE_PORT_INTERN}"
     env_file:
       - .env
+    restart: unless-stopped
     volumes:
       - ./logs:/app/logs
 
