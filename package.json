@@ -14,8 +14,6 @@
     "express": "^4.19.2",
     "express-basic-auth": "^1.2.1",
     "ics-service": "^1.4.0",
-    "node-cron": "^3.0.3",
-    "node-fetch": "^3.3.2",
     "winston": "^3.13.0"
   }
 }
