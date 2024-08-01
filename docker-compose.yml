@@ -1,16 +1,11 @@
-version: '3.8'
-
 services:
   node:
     build: .
-    container_name: ical-feed-node
+    container_name: ical-campusFeed
     ports:
       - "${NODE_PORT_EXTERN}:${NODE_PORT_INTERN}"
+    restart: unless-stopped
     env_file:
       - .env
-    restart: unless-stopped
     volumes:
       - ./logs:/app/logs
-
-volumes:
-  mongo_data:
