@@ -58,7 +58,6 @@ For the last fkn 6 years the Campus Dual self-service platform has not been rewo
 Ensure that your `docker-compose.yml` file looks as follows:
 
 ```yaml
-version: '3.8'
 
 services:
   node:
@@ -70,6 +69,3 @@ services:
       - .env
     volumes:
       - ./logs:/app/logs
-
-volumes:
-  mongo_data:
